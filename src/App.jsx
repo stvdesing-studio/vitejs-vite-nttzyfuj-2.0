@@ -1,42 +1,47 @@
-import React, { useState } from 'react';
-import LaboratorioLattice from './LaboratorioLattice';
-import STVDashboard from './components/STVDashboard';
+import React from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
+import { useControls, Leva } from 'leva'; // <-- Importamos la UI paramétrica
+import { GraphScene } from './components/GraphScene';
 
-function App() {
-  const [iniciado, setIniciado] = useState(false);
+const App = () => {
+  // Generamos nuestro "Árbol de Especificaciones" paramétrico
+  const parametros = useControls('Geometría Estructural', {
+    numNodos: { value: 120, min: 10, max: 300, step: 1, label: 'Nodos Base' },
+    maxDistance: { value: 3.5, min: 1.0, max: 10.0, step: 0.1, label: 'Alcance Conexión' },
+    spaceLimit: { value: 12, min: 5, max: 30, step: 1, label: 'Límite Espacial' }
+  });
 
   return (
-    <div style={{ width: '100vw', height: '100vh', margin: 0, padding: 0, overflow: 'hidden', backgroundColor: '#000000', position: 'relative' }}>
+    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#1A1A1A', cursor: 'grab' }}>
       
-      {!iniciado ? (
-        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-          
-          {/* CAPA 1: IMAGEN DE FONDO */}
-          {/* Si el ícono de imagen rota sigue saliendo, verifica que el nombre del archivo en la carpeta 'public' sea idéntico a src="/132150.png" */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none' }}>
-            <img src="/132150.png" alt="Fondo STV" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </div>
+      {/* Interfaz visual de Leva (El panel flotante) */}
+      <Leva theme={{ colors: { elevation1: '#222', elevation2: '#333' } }} />
 
-          {/* CAPA 2: ESTRUCTURA 3D */}
-          <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2, pointerEvents: 'none' }}>
-            <LaboratorioLattice />
-          </div>
+      <Canvas camera={{ position: [0, 0, 15], fov: 45 }}>
+        <color attach="background" args={['#1A1A1A']} />
+        
+        <Environment preset="city" />
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[10, 20, 10]} intensity={2} />
+        
+        {/* Pasamos los datos paramétricos a nuestra estructura */}
+        <GraphScene 
+          numNodos={parametros.numNodos} 
+          maxDistance={parametros.maxDistance} 
+          spaceLimit={parametros.spaceLimit} 
+        />
 
-          {/* CAPA 3: BOTÓN DE INICIO */}
-          <button 
-            onClick={() => setIniciado(true)}
-            style={{
-              position: 'absolute', bottom: '5%', right: '5%', width: '250px', height: '100px', zIndex: 3,
-              background: 'transparent', border: 'none', cursor: 'pointer', outline: 'none'
-            }}
-            title="Iniciar Motor STV"
-          />
-        </div>
-      ) : (
-        <STVDashboard />
-      )}
+        <OrbitControls 
+            makeDefault 
+            enableDamping 
+            dampingFactor={0.05} 
+            maxPolarAngle={Math.PI} 
+            enablePan={true}
+        />
+      </Canvas>
     </div>
   );
-}
+};
 
 export default App;
