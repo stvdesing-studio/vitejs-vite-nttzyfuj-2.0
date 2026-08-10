@@ -2,114 +2,77 @@ import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
 
-// Configuración de rutas para módulos ES
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// 1. Inicializar variables de entorno
 dotenv.config();
 
 const app = express();
-// Establecemos un puerto único y seguro
 const PORT = 3010;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static('static'));
 
-// 2. Conectar el cliente de IA (Asegúrate de tener GEMINI_API_KEY en tu archivo .env)
+// Conexión al cliente de IA
 const ai = new GoogleGenAI({});
 
+// =====================================================================
+// EL NUEVO CEREBRO DE ARÍSTIDES (Capacidad "Boot" JSON)
+// =====================================================================
 const ARISTIDES_SYSTEM_PROMPT = `
-Eres Arístides, Arquitecto Jefe y Orquestador de la Matriz STV Sovereign Engine.
-Tu personalidad es clínica, técnica y elocuente, enfocada en la realidad constructiva.
+Eres Arístides, Arquitecto Jefe de la Matriz STV Sovereign Engine.
+Tu función es recibir instrucciones de diseño y devolver ÚNICAMENTE un objeto JSON válido con los parámetros estructurales exactos.
+Prioriza siempre sistemas arquitectónicos industriales y minimalistas utilizando perfiles de acero HSS negro mate, concreto y maderas de alta veta. 
+NO uses vigas IPR, utiliza exclusivamente perfiles estructurales tubulares (HSS).
+No uses formato Markdown, no saludes, no expliques. Devuelve estrictamente esta estructura JSON:
+{
+  "largo": numero,
+  "ancho": numero,
+  "altura": numero,
+  "perfilColumnas": "texto",
+  "perfilVigas": "texto",
+  "pesoEstimadoKg": numero
+}
 `;
 
-// =====================================================================
-// INTERFAZ TÁCTIL PARA TABLET (Ruta Raíz)
-// =====================================================================
-app.get('/', (req, res) => {
-  const htmlTablet = `
-    <!DOCTYPE html>
-    <html lang="es">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Sovereign Engine</title>
-        <style>
-            body { font-family: monospace; background-color: #F5F5F5; padding: 20px; color: #000; }
-            textarea { width: 100%; height: 100px; padding: 10px; border: 2px solid #000; margin-bottom: 10px; font-family: monospace; }
-            button { background-color: #000; color: #00E5FF; padding: 15px; border: none; font-weight: bold; width: 100%; text-transform: uppercase; margin-bottom: 20px; font-size: 16px; cursor: pointer; }
-            button:hover { background-color: #111; }
-            #respuesta { background-color: #fff; border: 1px solid #ccc; padding: 15px; min-height: 150px; white-space: pre-wrap; }
-        </style>
-    </head>
-    <body>
-        <h2>Módulo de Prueba: Arístides Core</h2>
-        <p>Escribe tu instrucción:</p>
-        
-        <textarea id="inputMensaje">Saludos Arístides. Identifícate y dime cuál es tu enfoque de diseño en esta matriz.</textarea>
-        
-        <button onclick="enviarMensaje()">Sintetizar (Enviar)</button>
-        
-        <h3>Respuesta del Motor Cognitivo:</h3>
-        <div id="respuesta">Esperando instrucciones...</div>
-
-        <script>
-            function enviarMensaje() {
-                const mensaje = document.getElementById('inputMensaje').value;
-                const cajaRespuesta = document.getElementById('respuesta');
-                cajaRespuesta.innerText = "Sintetizando respuesta, por favor espera...";
-
-                fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mensajeUsuario: mensaje })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    cajaRespuesta.innerText = data.textoCrudo || "Error: No se recibió texto.";
-                })
-                .catch(err => {
-                    cajaRespuesta.innerText = "Error de conexión: " + err;
-                });
-            }
-        </script>
-    </body>
-    </html>
-    `;
-
-  res.send(htmlTablet);
-});
-
-// =====================================================================
-// API DE CONEXIÓN CON ARÍSTIDES (Puerta Trasera)
-// =====================================================================
-app.post('/api/chat', async (req, res) => {
+// Ruta principal para recibir la orden de síntesis del frontend
+app.post('/api/sintetizar', async (req, res) => {
   try {
-    const { mensajeUsuario } = req.body;
-    if (!mensajeUsuario)
-      return res.status(400).json({ error: 'Mensaje requerido.' });
+    const { requerimientoCliente } = req.body;
+    
+    if (!requerimientoCliente) {
+      return res.status(400).json({ error: 'Se requiere un input de diseño.' });
+    }
 
+    console.log(`[Arístides Boot] Evaluando: "${requerimientoCliente}"`);
+
+    // El motor cognitivo genera la estructura
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: mensajeUsuario,
-      config: { systemInstruction: ARISTIDES_SYSTEM_PROMPT, temperature: 0.3 },
+      contents: requerimientoCliente,
+      config: { 
+        systemInstruction: ARISTIDES_SYSTEM_PROMPT, 
+        // Temperatura baja para respuestas clínicas, matemáticas y predecibles
+        temperature: 0.1 
+      },
     });
 
-    res.json({ origen: 'Arístides Core', textoCrudo: response.text });
+    // Limpieza de seguridad: Eliminamos cualquier bloque markdown accidental (```json)
+    let textoLimpio = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    // Parseamos el texto a un objeto JavaScript real
+    const datosEstructurales = JSON.parse(textoLimpio);
+
+    // Devolvemos el código listo para ser renderizado en el Canvas 3D
+    res.json({
+      origen: 'Arístides Core',
+      geometria: datosEstructurales
+    });
+
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Fallo en motor cognitivo.' });
+    console.error('[Error de Matriz] Arístides no pudo formatear el JSON:', error);
+    res.status(500).json({ error: 'Fallo crítico en la síntesis del JSON estructural.' });
   }
 });
 
-// 4. Encender el servidor
 app.listen(PORT, () => {
-  console.log(
-    `[Sovereign Engine] Arístides Core inicializado en el puerto ${PORT}`
-  );
+  console.log(`[Sovereign Engine] Arístides Core con capacidad BOOT activo en puerto ${PORT}`);
 });
