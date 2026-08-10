@@ -5,9 +5,11 @@ import EstructuraAristides from '../engine/EstructuraAristides';
 
 const STVDashboard = () => {
   const [materialActivo, setMaterialActivo] = useState('Columnas HSS Negro Mate');
-  // Estado para almacenar el JSON de Arístides
   const [datosEstructurales, setDatosEstructurales] = useState(null);
   const [cargando, setCargando] = useState(false);
+  
+  // Nuevo Estado: Almacena el texto que escribes para Arístides
+  const [promptUsuario, setPromptUsuario] = useState('');
 
   const opcionesMateriales = [
     'Columnas HSS Negro Mate',
@@ -15,19 +17,22 @@ const STVDashboard = () => {
     'Paneles de Madera Alta Veta'
   ];
 
-  // Gatillo de conexión con el backend
   const procesarSintesis = async () => {
+    // Si no hay texto, usamos un requerimiento por defecto por seguridad
+    const peticion = promptUsuario.trim() !== '' 
+      ? promptUsuario 
+      : "Genera un marco estructural base de 5x5 metros con 4 metros de altura.";
+
     setCargando(true);
     try {
       const respuesta = await fetch('http://localhost:3010/api/sintetizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requerimientoCliente: "Genera un marco estructural base para un claro de 8x6 metros con altura de 5 metros." })
+        body: JSON.stringify({ requerimientoCliente: peticion })
       });
       
       const datos = await respuesta.json();
       
-      // Inyectamos la geometría al modelo 3D
       if(datos.geometria) {
          setDatosEstructurales(datos.geometria);
       }
@@ -89,19 +94,35 @@ const STVDashboard = () => {
       <div style={{ width: '300px', borderLeft: '1px solid #222', padding: '30px 20px', display: 'flex', flexDirection: 'column', backgroundColor: '#050505', zIndex: 20 }}>
         <h3 style={{ fontSize: '13px', marginBottom: '30px', color: '#888', letterSpacing: '2px' }}>PARÁMETROS DE ENTORNO F2</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
+          
           <div>
             <label style={{ display: 'block', fontSize: '10px', color: '#666', marginBottom: '8px', letterSpacing: '1px' }}>1. TABLERO BASE</label>
             <select style={{ width: '100%', padding: '10px', backgroundColor: '#111', color: '#aaa', border: '1px solid #333', borderRadius: '4px', outline: 'none' }}>
               <option>Esquema Técnico Cerseta</option>
             </select>
           </div>
+
+          {/* NUEVO INPUT DE COMANDOS PARA ARÍSTIDES */}
+          <div style={{ marginTop: '10px' }}>
+            <label style={{ display: 'block', fontSize: '10px', color: '#00FFFF', marginBottom: '8px', letterSpacing: '1px' }}>2. CONSOLA DE DISEÑO</label>
+            <textarea 
+              value={promptUsuario}
+              onChange={(e) => setPromptUsuario(e.target.value)}
+              placeholder="Ej: Necesito una estructura de 12 metros de largo, 6 de ancho y 4 de altura..."
+              style={{ 
+                width: '100%', height: '80px', padding: '10px', backgroundColor: '#111', 
+                color: '#fff', border: '1px solid #00FFFF', borderRadius: '4px', 
+                outline: 'none', resize: 'none', fontSize: '12px' 
+              }}
+            />
+          </div>
+
         </div>
         
-        {/* BOTÓN NATIVO RESTAURADO */}
         <button 
           onClick={procesarSintesis}
           disabled={cargando}
-          style={{ backgroundColor: cargando ? '#555' : '#00FFFF', color: cargando ? '#aaa' : '#000000', padding: '15px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', border: 'none', borderRadius: '4px', cursor: cargando ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease' }}
+          style={{ backgroundColor: cargando ? '#555' : '#00FFFF', color: cargando ? '#aaa' : '#000000', padding: '15px', fontSize: '12px', fontWeight: 'bold', letterSpacing: '2px', textTransform: 'uppercase', border: 'none', borderRadius: '4px', cursor: cargando ? 'not-allowed' : 'pointer', transition: 'all 0.2s ease', marginTop: '15px' }}
         >
           {cargando ? 'PROCESANDO...' : 'SINTETIZAR ENTORNO F2'}
         </button>
