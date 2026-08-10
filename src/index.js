@@ -11,7 +11,7 @@ const PORT = 3010;
 app.use(cors());
 app.use(express.json());
 
-// Conexión al cliente de IA
+// Conexión al cliente de IA (Línea restaurada y limpia)
 const ai = new GoogleGenAI({});
 
 // =====================================================================
@@ -33,7 +33,6 @@ No uses formato Markdown, no saludes, no expliques. Devuelve estrictamente esta 
 }
 `;
 
-// Ruta principal para recibir la orden de síntesis del frontend
 app.post('/api/sintetizar', async (req, res) => {
   try {
     const { requerimientoCliente } = req.body;
@@ -44,24 +43,18 @@ app.post('/api/sintetizar', async (req, res) => {
 
     console.log(`[Arístides Boot] Evaluando: "${requerimientoCliente}"`);
 
-    // El motor cognitivo genera la estructura
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash', 
       contents: requerimientoCliente,
       config: { 
         systemInstruction: ARISTIDES_SYSTEM_PROMPT, 
-        // Temperatura baja para respuestas clínicas, matemáticas y predecibles
         temperature: 0.1 
       },
     });
 
-    // Limpieza de seguridad: Eliminamos cualquier bloque markdown accidental (```json)
     let textoLimpio = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
-    
-    // Parseamos el texto a un objeto JavaScript real
     const datosEstructurales = JSON.parse(textoLimpio);
 
-    // Devolvemos el código listo para ser renderizado en el Canvas 3D
     res.json({
       origen: 'Arístides Core',
       geometria: datosEstructurales

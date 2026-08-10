@@ -5,7 +5,7 @@ import EstructuraAristides from '../engine/EstructuraAristides';
 
 const STVDashboard = () => {
   const [materialActivo, setMaterialActivo] = useState('Columnas HSS Negro Mate');
-  // Nuevo Estado: Almacena el JSON que devuelve el backend
+  // Estado para almacenar el JSON de Arístides
   const [datosEstructurales, setDatosEstructurales] = useState(null);
   const [cargando, setCargando] = useState(false);
 
@@ -15,10 +15,10 @@ const STVDashboard = () => {
     'Paneles de Madera Alta Veta'
   ];
 
+  // Gatillo de conexión con el backend
   const procesarSintesis = async () => {
     setCargando(true);
     try {
-      // Llamada real al servidor Node.js
       const respuesta = await fetch('http://localhost:3010/api/sintetizar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -27,7 +27,7 @@ const STVDashboard = () => {
       
       const datos = await respuesta.json();
       
-      // Si el JSON es válido, inyectamos la geometría al modelo 3D
+      // Inyectamos la geometría al modelo 3D
       if(datos.geometria) {
          setDatosEstructurales(datos.geometria);
       }
@@ -40,7 +40,7 @@ const STVDashboard = () => {
   return (
     <div style={{ display: 'flex', height: '100vh', width: '100vw', backgroundColor: '#0a0a0a', color: '#ffffff', fontFamily: 'sans-serif' }}>
       
-      {/* 1. PANEL LATERAL IZQUIERDO */}
+      {/* PANEL LATERAL IZQUIERDO */}
       <div style={{ width: '300px', borderRight: '1px solid #222', padding: '30px 20px', display: 'flex', flexDirection: 'column', backgroundColor: '#050505', zIndex: 20 }}>
         <h2 style={{ fontSize: '18px', letterSpacing: '3px', color: '#00FFFF', textTransform: 'uppercase', margin: '0 0 5px 0' }}>STV Engine</h2>
         <p style={{ fontSize: '11px', color: '#666', letterSpacing: '1px', marginBottom: '40px', textTransform: 'uppercase' }}>Stage 2: Identidad Física</p>
@@ -65,7 +65,7 @@ const STVDashboard = () => {
         </div>
       </div>
 
-      {/* 2. ÁREA DE VISUALIZACIÓN PRINCIPAL */}
+      {/* ÁREA DE VISUALIZACIÓN PRINCIPAL */}
       <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f4f7f9' }}>
          <div style={{ position: 'absolute', top: '25px', right: '30px', fontSize: '11px', color: '#888', letterSpacing: '2px', zIndex: 10 }}>
             {cargando ? "SINTETIZANDO..." : "ESQUEMA TÉCNICO // LÍNEAS CERSETA"}
@@ -78,7 +78,6 @@ const STVDashboard = () => {
               <ambientLight intensity={1} />
               <OrbitControls makeDefault target={[0, 2, 0]} />
 
-              {/* Pasamos los datos del estado de React a la estructura */}
               <EstructuraAristides datosIA={datosEstructurales} />
 
               <Grid position={[0, 0, 0]} args={[50, 50]} cellSize={1} cellThickness={1} cellColor="#e0e5ec" sectionSize={5} sectionThickness={1.5} sectionColor="#c8d0da" fadeDistance={30} fadeStrength={1} />
@@ -86,7 +85,7 @@ const STVDashboard = () => {
          </div>
       </div>
 
-      {/* 3. PANEL LATERAL DERECHO */}
+      {/* PANEL LATERAL DERECHO */}
       <div style={{ width: '300px', borderLeft: '1px solid #222', padding: '30px 20px', display: 'flex', flexDirection: 'column', backgroundColor: '#050505', zIndex: 20 }}>
         <h3 style={{ fontSize: '13px', marginBottom: '30px', color: '#888', letterSpacing: '2px' }}>PARÁMETROS DE ENTORNO F2</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', flex: 1 }}>
@@ -98,6 +97,7 @@ const STVDashboard = () => {
           </div>
         </div>
         
+        {/* BOTÓN NATIVO RESTAURADO */}
         <button 
           onClick={procesarSintesis}
           disabled={cargando}
