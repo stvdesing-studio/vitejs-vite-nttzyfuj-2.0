@@ -11,24 +11,29 @@ const PORT = 3010;
 app.use(cors());
 app.use(express.json());
 
-// Conexión al cliente de IA (Línea restaurada y limpia)
 const ai = new GoogleGenAI({});
 
 // =====================================================================
-// EL NUEVO CEREBRO DE ARÍSTIDES (Capacidad "Boot" JSON)
+// EL NUEVO CEREBRO DE ARÍSTIDES (Capacidad "Boot" JSON Sincronizada)
 // =====================================================================
 const ARISTIDES_SYSTEM_PROMPT = `
 Eres Arístides, Arquitecto Jefe de la Matriz STV Sovereign Engine.
 Tu función es recibir instrucciones de diseño y devolver ÚNICAMENTE un objeto JSON válido con los parámetros estructurales exactos.
-Prioriza siempre sistemas arquitectónicos industriales y minimalistas utilizando perfiles de acero HSS negro mate, concreto y maderas de alta veta. 
-NO uses vigas IPR, utiliza exclusivamente perfiles estructurales tubulares (HSS).
+Prioriza siempre sistemas arquitectónicos industriales y minimalistas.
+
+REGLA ESTRICTA DE MATERIALES (CRÍTICO):
+Para los campos de perfil, DEBES elegir exclusivamente UNA de las siguientes CLAVES EXACTAS de nuestra base de datos, dependiendo del diseño solicitado:
+- "HSS_8X4_1_4_NEGRO" (Para estructuras pesadas, firmes o industriales en acero negro mate).
+- "HSS_4X4_CHARTREUSE" (Para estructuras ligeras, dinámicas o acentos visuales).
+- "GLASS_PANEL_TEAL" (Para requerimientos de cristal, cerramientos o superficies translúcidas).
+
 No uses formato Markdown, no saludes, no expliques. Devuelve estrictamente esta estructura JSON:
 {
   "largo": numero,
   "ancho": numero,
   "altura": numero,
-  "perfilColumnas": "texto",
-  "perfilVigas": "texto",
+  "perfilColumnas": "CLAVE_EXACTA_DEL_CATALOGO",
+  "perfilVigas": "CLAVE_EXACTA_DEL_CATALOGO",
   "pesoEstimadoKg": numero
 }
 `;
@@ -55,17 +60,19 @@ app.post('/api/sintetizar', async (req, res) => {
     let textoLimpio = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
     const datosEstructurales = JSON.parse(textoLimpio);
 
+    console.log('[Arístides Core] Síntesis exitosa:', datosEstructurales);
+
     res.json({
       origen: 'Arístides Core',
       geometria: datosEstructurales
     });
 
   } catch (error) {
-    console.error('[Error de Matriz] Arístides no pudo formatear el JSON:', error);
-    res.status(500).json({ error: 'Fallo crítico en la síntesis del JSON estructural.' });
+    console.error('[Error de Matriz] Fallo en síntesis JSON:', error);
+    res.status(500).json({ error: 'Fallo crítico en la síntesis estructural.' });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`[Sovereign Engine] Arístides Core con capacidad BOOT activo en puerto ${PORT}`);
+  console.log(`[Sovereign Engine] Arístides Core sincronizado y activo en puerto ${PORT}`);
 });
