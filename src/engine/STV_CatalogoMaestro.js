@@ -1,53 +1,53 @@
 import * as THREE from 'three';
 
-// 1. PALETA DE COLORES INSTITUCIONAL STV
-export const STV_COLORS = {
-  JetBlack: "#0D0C0C",
-  ElectricChartreuse: "#B9FD09",
-  ClassicTeal: "#028189"
-};
-
-// 2. CATÁLOGO MAESTRO DE MATERIALES
+// 1. CATÁLOGO MAESTRO DE MATERIALES
 export const STV_CATALOGO = {
-  "HSS_8X4_1_4_NEGRO": {
-    descripcion: "HSS 8x4 in (Cal. 1/4) - Negro Mate",
-    visual: {
-      colorHex: STV_COLORS.JetBlack,
-      roughness: 0.8, 
-      metalness: 0.5, 
-      transparent: false
-    }
-  },
   "HSS_4X4_CHARTREUSE": {
-    descripcion: "HSS 4x4 in - Electric Chartreuse",
+    descripcion: "Retícula Chartreuse Neón",
     visual: {
-      colorHex: STV_COLORS.ElectricChartreuse,
-      roughness: 0.4,
-      metalness: 0.8,
+      colorHex: "#B9FD09",
+      emissive: "#B9FD09", // Clave para el efecto Neón
+      emissiveIntensity: 0.4, // Intensidad del brillo
+      roughness: 0.2,
+      metalness: 0.6,
       transparent: false
     }
   },
-  "GLASS_PANEL_TEAL": {
-    descripcion: "Cristal Tecnológico Teal",
+  "HSS_8X4_1_4_NEGRO": {
+    descripcion: "Columnas HSS Negro Piano",
     visual: {
-      colorHex: STV_COLORS.ClassicTeal,
-      roughness: 0.02,     
-      metalness: 0.1,
+      colorHex: "#000000", // Negro puro y absoluto
+      emissive: "#000000",
+      emissiveIntensity: 0,
+      roughness: 0.01,     // Pulido extremo tipo espejo
+      metalness: 0.85,     // Alta reflectancia para capturar la luz del entorno
+      transparent: false
+    }
+  },
+
+  "GLASS_PANEL_TEAL": {
+    descripcion: "Celosía Cerceta Translúcida",
+    visual: {
+      colorHex: "#028189",
+      emissive: "#000000",
+      emissiveIntensity: 0,
+      roughness: 0.05,
+      metalness: 0.2,
       transparent: true,
-      opacity: 0.65,
-      transmission: 0.90   
+      opacity: 0.85,
+      transmission: 0.9, // Clave para que la luz lo atraviese
+      ior: 1.5
     }
   }
 };
 
-// 3. FUNCIÓN GENERADORA DE MATERIALES 3D
+// 2. FUNCIÓN GENERADORA DE MATERIALES 3D
 export function generarMaterialThreeJS(claveMaterial) {
   const specs = STV_CATALOGO[claveMaterial];
   
-  if (!specs) {
-    return new THREE.MeshStandardMaterial({ color: 0xff00ff }); // Color de error
-  }
+  if (!specs) return new THREE.MeshStandardMaterial({ color: 0xff00ff });
 
+  // Si el material tiene transmisión (Cerceta Translúcido)
   if (specs.visual.transmission) {
     return new THREE.MeshPhysicalMaterial({
       color: specs.visual.colorHex,
@@ -56,12 +56,15 @@ export function generarMaterialThreeJS(claveMaterial) {
       transparent: specs.visual.transparent,
       roughness: specs.visual.roughness,
       metalness: specs.visual.metalness,
-      ior: 1.52,
+      ior: specs.visual.ior,
     });
   }
 
+  // Materiales Sólidos (Neón y Negro Piano)
   return new THREE.MeshStandardMaterial({
     color: specs.visual.colorHex,
+    emissive: specs.visual.emissive,
+    emissiveIntensity: specs.visual.emissiveIntensity,
     roughness: specs.visual.roughness,
     metalness: specs.visual.metalness,
     transparent: specs.visual.transparent,

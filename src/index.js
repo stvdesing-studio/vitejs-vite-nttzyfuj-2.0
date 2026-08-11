@@ -1,21 +1,31 @@
+// 1. IMPORTACIONES
+// IMPORTANTE: 'import' siempre debe ir en minúscula en JavaScript.
 import express from 'express';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 
+// Cargamos las variables de entorno (como tu GEMINI_API_KEY oculta)
 dotenv.config();
 
+// 2. CONFIGURACIÓN DEL SERVIDOR
 const app = express();
 const PORT = 3010;
 
+// Habilitamos CORS para que el frontend (React en puerto 5173) pueda hablar con este backend (puerto 3010)
 app.use(cors());
+// Habilitamos que el servidor pueda leer cuerpos de peticiones en formato JSON
 app.use(express.json());
 
+// 3. INICIALIZACIÓN DE LA IA
+// El SDK automáticamente buscará la variable de entorno GEMINI_API_KEY
 const ai = new GoogleGenAI({});
 
 // =====================================================================
 // EL NUEVO CEREBRO DE ARÍSTIDES (Capacidad "Boot" JSON Sincronizada)
 // =====================================================================
+// EDUCACIÓN: Las comillas invertidas (`) nos permiten escribir strings multilínea.
+// Al ser tan específicos con la estructura JSON, evitamos que la IA responda con texto innecesario.
 const ARISTIDES_SYSTEM_PROMPT = `
 Eres Arístides, Arquitecto Jefe de la Matriz STV Sovereign Engine.
 Tu función es recibir instrucciones de diseño y devolver ÚNICAMENTE un objeto JSON válido con los parámetros estructurales exactos.
@@ -38,8 +48,10 @@ No uses formato Markdown, no saludes, no expliques. Devuelve estrictamente esta 
 }
 `;
 
+// 4. RUTA PRINCIPAL DE SÍNTESIS
 app.post('/api/sintetizar', async (req, res) => {
   try {
+    // Extraemos lo que el usuario escribió en el Dashboard
     const { requerimientoCliente } = req.body;
     
     if (!requerimientoCliente) {
@@ -48,20 +60,25 @@ app.post('/api/sintetizar', async (req, res) => {
 
     console.log(`[Arístides Boot] Evaluando: "${requerimientoCliente}"`);
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-1.5-flash', 
-      contents: requerimientoCliente,
-      config: { 
-        systemInstruction: ARISTIDES_SYSTEM_PROMPT, 
-        temperature: 0.1 
-      },
-    });
+        // Llamamos a Gemini usando el modelo más reciente y compatible
+        const response = await ai.models.generateContent({
+          model: 'gemini-2.5-flash', // ✅ Actualizado a la versión más reciente y compatible
+          contents: requerimientoCliente,
+          config: { 
+            systemInstruction: ARISTIDES_SYSTEM_PROMPT, 
+            temperature: 0.1 // Temperatura baja para que sea muy matemático y preciso
+          },
+        });
+    
 
+    // EDUCACIÓN: La IA a veces envuelve el JSON en bloques de código de Markdown (```json ... ```).
+    // Las siguientes líneas buscan esos bloques y los eliminan para que JSON.parse() no falle.
     let textoLimpio = response.text.replace(/```json/g, '').replace(/```/g, '').trim();
     const datosEstructurales = JSON.parse(textoLimpio);
 
     console.log('[Arístides Core] Síntesis exitosa:', datosEstructurales);
 
+    // Devolvemos la respuesta al Dashboard de React
     res.json({
       origen: 'Arístides Core',
       geometria: datosEstructurales
@@ -73,6 +90,7 @@ app.post('/api/sintetizar', async (req, res) => {
   }
 });
 
+// 5. ENCENDIDO DEL SERVIDOR
 app.listen(PORT, () => {
   console.log(`[Sovereign Engine] Arístides Core sincronizado y activo en puerto ${PORT}`);
 });

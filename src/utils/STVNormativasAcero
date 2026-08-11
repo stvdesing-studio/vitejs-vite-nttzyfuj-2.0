@@ -1,0 +1,70 @@
+/**
+ * ARCHIVO: STVNormativasAcero.js
+ * Propósito: Núcleo de validación normativa y reglas de ingeniería estructural (AISC 360, IMCA, AWS D1.1).
+ * Contiene los criterios matemáticos de resistencia, fluencia y viabilidad de taller.
+ */
+
+// 1. CONSTANTES NORMATIVAS DE MATERIALES (AISC 360 / ASTM A500)
+export const LIMITE_FLUENCIA_ACERO_HSS_MPa = 317; // Fy para perfiles HSS Grado B
+export const LIMITE_FLUENCIA_ACERO_IPR_MPa = 250; // Fy para vigas IPR ASTM A36
+export const FACTOR_SEGURIDAD_AISCS = 1.67;       // Factor estándar de diseño por esfuerzos admisibles (ASD)
+
+/**
+ * Evalúa la resistencia y viabilidad estructural de un elemento sometido a cargas de servicio.
+ * Aplica criterios basados en AISC 360 y límites de fluencia.
+ * 
+ * @param {number} fuerzaAplicada_Newtons - Carga total combinada (ASCE 7)
+ * @param {number} areaSeccion_mm2 - Área de la sección transversal del perfil en mm²
+ * @returns {Object} Resultado de la evaluación estructural
+ */
+export function evaluarResistenciaElemento(fuerzaAplicada_Newtons, areaSeccion_mm2) {
+  if (!areaSeccion_mm2 || areaSeccion_mm2 <= 0) {
+    return {
+      esfuerzoCalculado: 0,
+      esfuerzoPermisible: 0,
+      estado: "ERROR: ÁREA SECCIONAL INVÁLIDA",
+      porcentajeCapacidad: "0%",
+      esCritico: true
+    };
+  }
+
+  // Cálculo del esfuerzo actual en MegaPascals (MPa = N / mm2)
+  const esfuerzoActual_MPa = fuerzaAplicada_Newtons / areaSeccion_mm2;
+  
+  // Esfuerzo permisible según normativa AISC 360
+  const esfuerzoPermisible_MPa = LIMITE_FLUENCIA_ACERO_HSS_MPa / FACTOR_SEGURIDAD_AISCS;
+
+  const esCritico = esfuerzoActual_MPa > esfuerzoPermisible_MPa;
+  const porcentaje = (esfuerzoActual_MPa / esfuerzoPermisible_MPa) * 100;
+
+  return {
+    esfuerzoCalculado: esfuerzoActual_MPa.toFixed(2),
+    esfuerzoPermisible: esfuerzoPermisible_MPa.toFixed(2),
+    estado: esCritico ? "CRITICO / SOBRECARGA (REQUIERE PERFIL SUPERIOR)" : "ESTABLE / SEGURO (CUMPLE AISC 360)",
+    porcentajeCapacidad: porcentaje.toFixed(1) + "%",
+    esCritico
+  };
+}
+
+/**
+ * Valida la viabilidad constructiva de un elemento de acero según las prácticas IMCA y AWS D1.1.
+ * Regula tolerancias de taller, longitud comercial y necesidad de empalmes.
+ * 
+ * @param {string} tipoPerfil - Familia del perfil ('HSS', 'PTR', 'IPR')
+ * @param {number} longitud_m - Longitud actual del tramo en metros
+ * @returns {Object} Dictamen de viabilidad para taller y montaje
+ */
+export function validarViabilidadConstructiva(tipoPerfil, longitud_m) {
+  const longitudMaximaComercial_m = 12.0;
+  const requiereEmpalmeRigging = longitud_m > longitudMaximaComercial_m;
+
+  return {
+    tipoPerfil,
+    longitud_m,
+    requiereEmpalmeRigging,
+    observacionTaller: requiereEmpalmeRigging 
+      ? "Advertencia IMCA: La longitud supera el tramo comercial estándar de 12m; requiere placa de empalme y soldadura de penetración AWS D1.1." 
+      : "Viabilidad de taller correcta: Optimizado para corte desde tramo comercial estándar.",
+    aprobadoMontaje: true
+  };
+}

@@ -3,23 +3,23 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 // 1. Importamos la función generadora de materiales desde tu Catálogo Maestro
-import { generarMaterialThreeJS } from '../STV_CatalogoMaestro';
+import { generarMaterialThreeJS } from '../engine/STV_CatalogoMaestro';
 
 export const GraphScene = ({ 
-  numNodos, 
-  maxDistance, 
-  spaceLimit, 
-  hssRadius, 
-  showNodes, 
-  perfilActivo // 2. Recibimos la selección del menú de Leva
+  numNodos = 120, 
+  maxDistance = 3.5, 
+  spaceLimit = 12, 
+  hssRadius = 0.015, 
+  showNodes = true, 
+  perfilActivo 
 }) => {
   const nodosRef = useRef();
   const cilindrosRef = useRef();
 
-  // Nivel dinámico del piso basado en el límite espacial
+  // Nivel dinámico del piso y cimentación unificado
   const nivelCimentacion = -spaceLimit / 2.5;
 
-  // Generamos la matriz inicial de partículas y uniones
+  // Generamos la matriz inicial de partículas y uniones físicas (Ley de Hooke)
   const { particulas, uniones } = useMemo(() => {
     const pos = [];
     for (let i = 0; i < numNodos; i++) {
@@ -52,7 +52,7 @@ export const GraphScene = ({
     return { particulas: pos, uniones: conexiones };
   }, [numNodos, maxDistance, spaceLimit]);
 
-  // Variables auxiliares para actualización de matrices
+  // Variables auxiliares para actualización de matrices en Three.js
   const dummyNode = useMemo(() => new THREE.Object3D(), []);
   const dummyEdge = useMemo(() => new THREE.Object3D(), []);
   const midPoint = useMemo(() => new THREE.Vector3(), []);
@@ -63,13 +63,12 @@ export const GraphScene = ({
     return geo;
   }, [hssRadius]);
 
-  // 3. GENERACIÓN DINÁMICA DE MATERIALES
-  // Cada vez que 'perfilActivo' cambie en Leva, Three.js recalculará el material
+  // Generación dinámica del material estructural según el catálogo maestro
   const materialEstructural = useMemo(() => {
     return generarMaterialThreeJS(perfilActivo);
   }, [perfilActivo]);
 
-  // Material estático por defecto para los nodos (Esferas)
+  // Material estático para los nodos (Esferas)
   const materialNodos = useMemo(() => {
     return new THREE.MeshStandardMaterial({ 
       color: '#00E5FF', 
@@ -78,7 +77,7 @@ export const GraphScene = ({
     });
   }, []);
 
-  // 4. MOTOR DE FÍSICA (Idéntico a tu versión estable)
+  // 2. MOTOR DE FÍSICA EN TIEMPO REAL (useFrame)
   useFrame(() => {
     particulas.forEach(p => p.fuerza.set(0, 0, 0));
 
@@ -96,7 +95,7 @@ export const GraphScene = ({
       destino.fuerza.sub(vectorDireccion);
     });
 
-    // Prevención de penetración rígida
+    // Prevención de penetración rígida entre nodos
     const limiteColision = hssRadius * 5.0; 
     for (let i = 0; i < numNodos; i++) {
       for (let j = i + 1; j < numNodos; j++) {
@@ -113,14 +112,14 @@ export const GraphScene = ({
       }
     }
 
-    // Integración de velocidad, gravedad y cimentación
+    // Integración de velocidad, gravedad, fricción y cimentación
     particulas.forEach((p, i) => {
       p.velocidad.y += GRAVEDAD;
       p.velocidad.add(p.fuerza);
       p.velocidad.multiplyScalar(0.85); 
       p.posicion.add(p.velocidad);
 
-      // Límite de cimentación vertical
+      // Colisión contra el plano de cimentación inferior
       if (p.posicion.y < nivelCimentacion) {
         p.posicion.y = nivelCimentacion; 
         p.velocidad.y *= -0.2;     
@@ -128,7 +127,7 @@ export const GraphScene = ({
         p.velocidad.z *= 0.8;
       }
 
-      // Límites de muros contenedores laterales
+      // Límites de muros contenedores laterales (Ejes X y Z)
       if (Math.abs(p.posicion.x) > spaceLimit / 2) {
         p.posicion.x = Math.sign(p.posicion.x) * (spaceLimit / 2);
         p.velocidad.x *= -0.5;
@@ -144,7 +143,7 @@ export const GraphScene = ({
     });
     nodosRef.current.instanceMatrix.needsUpdate = true;
 
-    // Actualización de malla instanciada para perfiles estructurales
+    // Actualización de malla instanciada para perfiles estructurales HSS
     uniones.forEach((union, index) => {
       midPoint.addVectors(union.origen.posicion, union.destino.posicion).multiplyScalar(0.5);
       dummyEdge.position.copy(midPoint);
@@ -156,14 +155,19 @@ export const GraphScene = ({
     });
     cilindrosRef.current.count = uniones.length;
     cilindrosRef.current.instanceMatrix.needsUpdate = true;
-  });
+  }); // <-- Aquí aseguramos el cierre correcto de la función useFrame
 
   return (
     <group>
-      {/* 5. CIMENTACIÓN VISUAL (Piso Reflectante) */}
+      {/* CIMENTACIÓN VISUAL: PISO BLANCO REFLECTANTE INFINITO */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, nivelCimentacion, 0]}>
-        <planeGeometry args={[100, 100]} />
-        <meshStandardMaterial color="#FFFFFF" roughness={0.0} metalness={0.1} />
+        <planeGeometry args={[1000, 1000]} />
+        <meshStandardMaterial 
+          color="#FFFFFF" 
+          roughness={0.01} 
+          metalness={0.2} 
+          envMapIntensity={1.0}
+        />
       </mesh>
 
       {/* Renderizado de Nodos */}
@@ -171,7 +175,7 @@ export const GraphScene = ({
         <sphereGeometry args={[0.08, 16, 16]} />
       </instancedMesh>
       
-      {/* 6. RENDERIZADO DE PERFILES HSS (Usando el material del catálogo) */}
+      {/* Renderizado de la Retícula Estructural */}
       <instancedMesh 
         ref={cilindrosRef} 
         args={[cylinderGeometry, materialEstructural, uniones.length > 0 ? uniones.length : 1000]} 

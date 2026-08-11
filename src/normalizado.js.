@@ -1,0 +1,21 @@
+// Módulo de Validación y Normalización de Parámetros Estructurales
+const normalizarParametros = (datosCrudos) => {
+  if (!datosCrudos || typeof datosCrudos !== 'object') {
+    throw new Error("[Error de Código] Los datos de entrada no son un objeto válido.");
+  }
+
+  // Aseguramos que las dimensiones y perfiles cumplan con la norma del motor
+  const parametrosLimpios = {
+    largo: Number(datosCrudos.largo) || 5.0,
+    ancho: Number(datosCrudos.ancho) || 5.0,
+    altura: Number(datosCrudos.altura) || 4.0,
+    perfilColumnas: String(datosCrudos.perfilColumnas || 'HSS 4x4x1/4'),
+    perfilVigas: String(datosCrudos.perfilVigas || 'HSS 6x4x1/4'),
+    pesoEstimadoKg: Number(datosCrudos.pesoEstimadoKg) || 440.0
+  };
+
+  console.log("[STV Parser] Parámetros normalizados correctamente para el motor 3D.");
+  return parametrosLimpios;
+};
+
+export default normalizarParametros;
